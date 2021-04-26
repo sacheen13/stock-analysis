@@ -7,3 +7,7 @@ for better results try for going with the stocks having greater data available.
 
 All the code used are for research basis only.
 Feel free to use for your research.
+
+Contributers:
+              S.SAI SACHEEN
+              CHIRAG GARG
