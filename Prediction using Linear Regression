@@ -1,0 +1,194 @@
+"""# Linear Regression"""
+
+!pip install yahoo_fin
+
+# Commented out IPython magic to ensure Python compatibility.
+from yahoo_fin import stock_info as si
+
+import numpy as np
+import pandas as pd
+import datetime
+
+# %matplotlib inline
+import matplotlib.pyplot as plt
+import seaborn as sns
+plt.style.use('seaborn-darkgrid')
+plt.rc('figure', figsize=(16,10))
+plt.rc('lines', markersize=4)
+
+end_date = datetime.date(2019,12,31)
+data = si.get_data('RELIANCE.NS', end_date=end_date)
+data
+
+data.info()
+data.describe()
+
+
+# Create a new DataFrame with only closing price and date
+df = pd.DataFrame(data, columns=['close'])
+# Reset index column so that we have integers to represent time for later analysis
+df = df.reset_index()
+df
+
+df.isna().values.any()
+
+df[df['close'].isna()]
+
+#df=df.fillna(df.mean())
+df= df.dropna()
+
+df.isna().values.any()
+df.iloc[3579]
+
+# Import matplotlib package for date plots
+import matplotlib.dates as mdates
+
+years = mdates.YearLocator() # Get every year
+yearsFmt = mdates.DateFormatter('%Y') # Set year format
+
+# Create subplots to plot graph and control axes
+fig, ax = plt.subplots()
+ax.plot(df['index'], df['close'])
+
+# Format the ticks
+ax.xaxis.set_major_locator(years)
+ax.xaxis.set_major_formatter(yearsFmt)
+
+# Set figure title
+plt.title('Close Stock Price History [2009 - 2019]', fontsize=16)
+# Set x label
+plt.xlabel('Date', fontsize=14)
+# Set y label
+plt.ylabel('Closing Stock Price in $', fontsize=14)
+
+# Rotate and align the x labels
+fig.autofmt_xdate()
+
+# Show plot
+
+# Import package for splitting data set
+from sklearn.model_selection import train_test_split
+
+# Split data into train and test set: 85% / 15%
+train, test = train_test_split(df, test_size=0.15)
+
+# Import package for linear model
+from sklearn.linear_model import LinearRegression
+
+# Reshape index column to 2D array for .fit() method
+X_train = np.array(train.index).reshape(-1, 1)
+y_train = train['close']
+# Create LinearRegression Object
+model = LinearRegression()
+# Fit linear model using the train data set
+model.fit(X_train, y_train)
+
+# The coefficient
+print('Slope: ', np.asscalar(np.squeeze(model.coef_)))
+# The Intercept
+print('Intercept: ', model.intercept_)
+
+# Train set graph
+plt.figure(1, figsize=(16,10))
+plt.title('Linear Regression | Price vs Time')
+plt.scatter(X_train, y_train, edgecolor='w', label='Actual Price')
+plt.plot(X_train, model.predict(X_train), color='r', label='Predicted Price')
+plt.xlabel('Integer Date')
+plt.ylabel('Stock Price')
+plt.legend()
+plt.show()
+
+# Create test arrays
+X_test = np.array(test.index).reshape(-1, 1)
+y_test = test['close']
+# Generate array with predicted values
+y_pred = model.predict(X_test)
+y_pred.shape
+
+# Get number of rows in data set for random sample
+df.shape
+
+# Generate 25 random numbers
+randints = np.random.randint(6039, size=25)
+
+# Select row numbers == random numbers
+df_sample = df[df.index.isin(randints)]
+df_sample.head()
+
+df
+
+# Create subplots to plot graph and control axes
+fig, ax = plt.subplots()
+df_sample.plot(x='index', y=['close', 'Prediction'], kind='bar', ax=ax)
+
+# Set figure title
+plt.title('Comparison Predicted vs Actual Price in Sample data selection', fontsize=16)
+
+# 
+
+# Set x label
+plt.xlabel('Date', fontsize=14)
+
+# Set y label
+plt.ylabel('Stock Price in $', fontsize=14)
+
+# Show plot
+plt.show()
+
+# Plot fitted line, y test
+plt.figure(1, figsize=(16,10))
+plt.title('Linear Regression | Price vs Time')
+plt.plot(X_test, model.predict(X_test), color='r', label='Predicted Price')
+plt.scatter(X_test, y_test, edgecolor='w', label='Actual Price')
+
+plt.xlabel('Integer Date')
+plt.ylabel('Stock Price in $')
+
+plt.show()
+
+# Plot predicted vs actual prices
+plt.scatter(y_test, y_pred)
+
+plt.xlabel('Actual Prices')
+plt.ylabel('Predicted Prices')
+
+plt.title('Predicted vs Actual Price')
+
+plt.show()
+
+# Import norm package to plot normal distribution
+from scipy.stats import norm
+
+# Fit a normal distribution to the data:
+mu, std = norm.fit(y_test - y_pred)
+
+ax = sns.distplot((y_test - y_pred), label='Residual Histogram & Distribution')
+
+# Calculate the pdf over a range of values         
+x = np.linspace(min(y_test - y_pred), max(y_test - y_pred), 100)
+p = norm.pdf(x, mu, std)
+
+# And plot on the same axes that seaborn put the histogram
+ax.plot(x, p, 'r', lw=2, label='Normal Distribution') 
+
+plt.legend()
+plt.show()
+
+# Add new column for predictions to df
+df['Prediction'] = model.predict(np.array(df.index).reshape(-1, 1))
+df.head()
+
+# Import metrics package from sklearn for statistical analysis
+from sklearn import metrics
+# Statistical summary of test data
+df['close'].describe()
+
+# Calculate and print values of MAE, MSE, RMSE
+print('Mean Absolute Error:', metrics.mean_absolute_error(y_test, y_pred))  
+print('Mean Squared Error:', metrics.mean_squared_error(y_test, y_pred))  
+print('Root Mean Squared Error:', np.sqrt(metrics.mean_squared_error(y_test, y_pred)))
+
+print('R2: ', metrics.r2_score(y_test, y_pred))
+
+from sklearn.metrics import explained_variance_score
+explained_variance_score(y_test, y_pred)
